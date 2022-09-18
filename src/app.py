@@ -1,9 +1,12 @@
 import os
+import logging
+
 import streamlit as st
 
 from views.sidebar import Sidebar
-
 from services.hash_service import check_hashes
+
+logger = logging.getLogger(__name__)
 
 
 class APP:
@@ -12,14 +15,18 @@ class APP:
     hashed_text: str = os.environ['hashed_text']
 
     def __init__(self):
-        pass
+        if self.env not in ['prod', 'develop']:
+            raise ValueError
 
     def main(self):
         match self.env:
             case 'develop':
                 is_success: bool = True
             case _:
-                is_success: bool = self._password()
+                if self._password() is not False:
+                    is_success: bool = True
+                else:
+                    is_success: bool = False
 
         if is_success:
             self._title()
@@ -33,10 +40,11 @@ class APP:
         return check_hashes(password=password, hashed_text=self.hashed_text)
 
     def _title(self):
-        self.st.title('check title')
+        self.st.title('streamlit-demo')
 
     def _write(self):
-        self.st.write('check write')
+        # self.st.write('check write')
+        pass
 
     def _sidebar(self):
         sidebar = Sidebar(st=self.st)
@@ -49,7 +57,7 @@ class APP:
                 self.st.title('csv service')
                 sidebar.csv_service()
             case 'etc':
-                pass
+                sidebar.etc_service()
             case _:
                 pass
 
