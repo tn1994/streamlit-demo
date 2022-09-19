@@ -134,5 +134,6 @@ dmypy.json
 # for Jetbrains IDE
 .idea
 
-# env
-.env
+# secret of streamlit
+config/secrets.toml
+src/.streamlit

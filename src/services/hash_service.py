@@ -18,5 +18,6 @@ def check_hashes(password: str, hashed_text: str) -> str or bool:
     :return:
     """
     if make_hashes(password) == hashed_text:
-        return hashed_text
-    return False
+        return True
+    else:
+        return False
