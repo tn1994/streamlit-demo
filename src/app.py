@@ -1,4 +1,3 @@
-import os
 import logging
 
 import streamlit as st
@@ -11,55 +10,65 @@ logger = logging.getLogger(__name__)
 
 class APP:
     st: st = st
-    env: str = os.environ['env']
-    hashed_text: str = os.environ['hashed_text']
+    env: str = st.secrets["env"]
+    hashed_text: str = st.secrets['hashed_text']
+
+    if 'is_authorization' not in st.session_state:
+        st.session_state.is_authorization = False
 
     def __init__(self):
         if self.env not in ['prod', 'develop']:
             raise ValueError
 
     def main(self):
-        match self.env:
-            case 'develop':
-                is_success: bool = True
-            case _:
-                if self._password() is not False:
-                    is_success: bool = True
-                else:
-                    is_success: bool = False
-
-        if is_success:
-            self._title()
-            self._write()
+        option = self.st.sidebar.selectbox(
+            label='main page:',
+            options=['login', 'main'],
+            index=1 if self.st.session_state.is_authorization else 0
+        )
+        if 'login' == option and not self.st.session_state.is_authorization:
+            self._top_page()
+            self.st.session_state.is_authorization = self._password()
+        if 'login' == option and self.st.session_state.is_authorization:
+            self.st.sidebar.info('Switch to "Main" from the select box in the sidebar.')
+        if 'main' == option and self.st.session_state.is_authorization:
             self._sidebar()
-        else:
-            self.st.write('No Access')
 
-    def _password(self):
-        password = st.sidebar.text_input("Please enter your password.", type='password')
-        return check_hashes(password=password, hashed_text=self.hashed_text)
+        # view Authorization in sidebar
+        self.st.sidebar.markdown('### Now Your Authorization:')
+        match self.st.session_state.is_authorization:
+            case True:
+                self.st.sidebar.success('Authorization')
+            case False:
+                self.st.sidebar.warning('Unauthenticated')
+            case _:
+                raise ValueError(f'{self.st.session_state.is_authorization=}')
+
+    def _password(self) -> bool:
+        with self.st.form(key='password'):
+            password = self.st.text_input(label='Please enter your password.', type='password', value='0')
+            submit_button = self.st.form_submit_button(label='Submit')
+        if submit_button:
+            is_authorization = check_hashes(password=password, hashed_text=self.hashed_text)
+            if is_authorization:
+                return True
+            else:
+                self.st.write('Please Re-Input and Re-Submit.')
+        return False
+
+    def _top_page(self):
+        self._title()
+        self._write()
 
     def _title(self):
         self.st.title('streamlit-demo')
 
     def _write(self):
-        # self.st.write('check write')
-        pass
+        self.st.write('check write')
 
     def _sidebar(self):
         sidebar = Sidebar(st=self.st)
-
-        match sidebar.radio_value:
-            case 'image_service':
-                self.st.title('image service')
-                sidebar.image_service()
-            case 'csv_service':
-                self.st.title('csv service')
-                sidebar.csv_service()
-            case 'etc':
-                sidebar.etc_service()
-            case _:
-                pass
+        pass
 
 
 def main():

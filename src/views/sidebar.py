@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class Sidebar:
     radio_value: str
-    radio_value_list = [
+    service_list = [
         'image_service',
         'csv_service',
         'etc'
@@ -23,12 +23,25 @@ class Sidebar:
         self.main()
 
     def main(self):
-        self.st.sidebar.markdown('check sidebar')
-        self._check_radio()
+        option = self.st.sidebar.selectbox(
+            'sub page:',
+            Sidebar.service_list
+        )
+
+        match option:
+            case 'image_service':
+                self.st.title('image service')
+                self.image_service()
+            case 'csv_service':
+                self.st.title('csv service')
+                self.csv_service()
+            case 'etc':
+                self.etc_service()
+            case _:
+                pass
 
     def _check_radio(self):
-        radio_value = self.st.sidebar.radio('check_radio', self.radio_value_list)
-
+        radio_value = self.st.sidebar.radio('check_radio', self.service_list)
         if radio_value:
             self.radio_value = radio_value
 
@@ -58,11 +71,11 @@ class Sidebar:
 
     def etc_service(self):
         self.st.markdown("""
-        |Page|Functions|
-        |---|---|
-        |image_service|upload|
-        ||view|
-        |csv_service|upload|
-        ||view|
-        |etc|*this page*|
+        |Sub Page       |Functions|
+        |---------------|-----------|
+        |image_service  |upload|
+        |               |view|
+        |csv_service    |upload|
+        |               |view|
+        |etc            |*this page*|
         """)

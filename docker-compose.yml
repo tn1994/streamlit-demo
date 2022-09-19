@@ -7,10 +7,9 @@ services:
     container_name: streamlit
     working_dir: '/src'
     tty: true
-    env_file:
-      - .env
     volumes:
       - ./src:/src
+      - ./config:/src/.streamlit
     ports:
       - '8501:8501'
     command: streamlit run app.py
