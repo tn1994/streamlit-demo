@@ -82,7 +82,9 @@ class Sidebar:
         with tab2:  # temp data tab
             if self.st.button('Use Classification Data'):
                 self.st.session_state.is_use_tmp_classification_data = True
+                self.st.session_state.is_use_tmp_regression_data = False
             if self.st.button('Use Regression Data'):
+                self.st.session_state.is_use_tmp_classification_data = False
                 self.st.session_state.is_use_tmp_regression_data = True
         with tab1:  # uploaded_files of csv tab
             uploaded_files = self.st.file_uploader("Or Your CSV file", type='csv', accept_multiple_files=False)
