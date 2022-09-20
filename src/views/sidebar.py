@@ -1,9 +1,6 @@
-import io
 import logging
 import datetime
 from datetime import timedelta
-
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -75,37 +72,56 @@ class Sidebar:
             logger.error(f'ERROR: {uploaded_file=}')
 
     def csv_service(self):
-        c1, c2 = self.st.columns([0.3, 0.7])
+        tab1, tab2 = self.st.tabs(['Use Your CSV File', 'Use Temp Data'])
 
-        with c1:
-            get_tmp_file = None
+        if 'is_use_tmp_classification_data' not in self.st.session_state and 'is_use_tmp_regression_data' not in self.st.session_state:
+            self.st.session_state.is_use_tmp_classification_data = False
+            self.st.session_state.is_use_tmp_regression_data = False
+
+        # todo: session handling, when exists csv in uploaded_file zone
+        with tab2:  # temp data tab
             if self.st.button('Use Classification Data'):
-                get_tmp_file = get_classification_buffer_data()
+                self.st.session_state.is_use_tmp_classification_data = True
             if self.st.button('Use Regression Data'):
-                get_tmp_file = get_regression_buffer_data()
-        with c2:
+                self.st.session_state.is_use_tmp_regression_data = True
+        with tab1:  # uploaded_files of csv tab
             uploaded_files = self.st.file_uploader("Or Your CSV file", type='csv', accept_multiple_files=False)
+            if uploaded_files is not None and (
+                    self.st.session_state.is_use_tmp_classification_data or self.st.session_state.is_use_tmp_regression_data
+            ) and self.st.button('Use Upload CSV File'):
+                self.st.session_state.is_use_tmp_classification_data = False
+                self.st.session_state.is_use_tmp_regression_data = False
 
-        if get_tmp_file is not None:
-            uploaded_files = get_tmp_file
-            self.st.info('Use Temp Data Now')
+        if self.st.session_state.is_use_tmp_classification_data and self.st.session_state.is_use_tmp_regression_data:
+            raise ValueError
+        elif self.st.session_state.is_use_tmp_classification_data or self.st.session_state.is_use_tmp_regression_data:
+            self.st.metric(label='Now Select Data', value='Temp Data')
+        elif uploaded_files is not None:
+            self.st.metric(label='Now Select Data', value='Upload CSV File')
 
         try:
-            if uploaded_files is not None:
+            if self.st.session_state.is_use_tmp_classification_data or self.st.session_state.is_use_tmp_regression_data or uploaded_files is not None:
                 with self.st.spinner('Wait for it...'):
-                    csv_service = CsvService(filepath_or_buffer=uploaded_files)
+                    if self.st.session_state.is_use_tmp_classification_data:
+                        csv_service = CsvService(filepath_or_buffer=get_classification_buffer_data())
+                    elif self.st.session_state.is_use_tmp_regression_data:
+                        csv_service = CsvService(filepath_or_buffer=get_regression_buffer_data())
+                    elif uploaded_files is not None:
+                        csv_service = CsvService(filepath_or_buffer=uploaded_files)
+                    else:
+                        raise ValueError
 
-                tab1, tab2 = self.st.tabs(['Check Upload CSV File', 'sklearn Service'])
+                tab1, tab2 = self.st.tabs(['Data Info', 'sklearn Service'])
 
                 with tab1:  # Check Upload CSV File
-                    with self.st.expander(label='Show Upload CSV File'):
+                    with self.st.expander(label='Show Data'):
                         self.st.table(csv_service.df)
 
-                    with self.st.expander(label='Show Graph of Upload CSV File'):
+                    with self.st.expander(label='Show Graph of Data', expanded=True):
                         self.st.line_chart(csv_service.df)
 
-                    self.st.markdown('- diff_column')
-                    self.st.table(csv_service.calc_diff())
+                    with self.st.expander(label='Show Diff Column'):
+                        self.st.table(csv_service.calc_diff())
 
                 with tab2:  # sklearn Service
                     predict_type = self.st.selectbox(
@@ -125,9 +141,7 @@ class Sidebar:
 
                         if predict_type is not None and model_name is not None and predict_column_name is not None and submitted:
                             with self.st.spinner('Wait for it...'):
-                                print(f'st check: {predict_type=}, {model_name=}')
                                 sklearn_service = SklearnService(predict_type=predict_type, model_name=model_name)
-                                print('foo')
                                 sklearn_service.main(df=csv_service.df, predict_column_name=predict_column_name)
 
                             # tabs after fit model
@@ -225,7 +239,6 @@ class Sidebar:
                     start_date = self.st.date_input('Start date', datetime.date(2020, 1, 1))
                 with c3:
                     end_date = self.st.date_input('End date')
-
                     if start_date > end_date:
                         self.st.error('Please start_date before end_date.')
                         is_check_stock_value_start_disabled: bool = True
@@ -249,14 +262,16 @@ class Sidebar:
 
     def etc_service(self):
         self.st.markdown("""
-        |Sub Page       |Functions        |
-        |---------------|-----------------|
-        |image_service  |upload           |
-        |               |view             |
-        |csv_service    |upload           |
-        |               |view             |
-        |stock_service  |Check Signal     |
-        |               |CHeck Per Ticker |
-        |               |CHeck Stock Value|
-        |etc            |*this page*      |
+        |Sub Page          |Functions           |
+        |------------------|--------------------|
+        |image_service     |upload              |
+        |                  |view                |
+        |csv_service       |upload csv file     |
+        |                  |use temp data       |
+        |                  |Data Info           |
+        |                  |sklearn service     |
+        |stock_service     |Check Signal        |
+        |                  |CHeck Per Ticker    |
+        |                  |CHeck Stock Value   |
+        |etc               |*this page*         |
         """)
