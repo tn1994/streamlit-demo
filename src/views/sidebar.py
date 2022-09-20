@@ -1,19 +1,29 @@
+import io
 import logging
 import datetime
 from datetime import timedelta
 
+import pandas as pd
+
+logger = logging.getLogger(__name__)
+
 try:
     from ..services.image_service import ImageService
     from ..services.csv_service import CsvService
+    from ..services.csv_service import get_classification_buffer_data
+    from ..services.csv_service import get_regression_buffer_data
     from ..services.stock_service import StockService
     from ..services.stock_service import color_survived
+    from ..services.sklearn_service import SklearnService
 except ImportError:
+    logger.info('check: ImportError')
     from services.image_service import ImageService
     from services.csv_service import CsvService
+    from services.csv_service import get_classification_buffer_data
+    from services.csv_service import get_regression_buffer_data
     from services.stock_service import StockService
     from services.stock_service import color_survived
-
-logger = logging.getLogger(__name__)
+    from services.sklearn_service import SklearnService
 
 
 class Sidebar:
@@ -31,7 +41,7 @@ class Sidebar:
 
     def main(self):
         option = self.st.sidebar.selectbox(
-            'sub page:',
+            'Sub Page',
             Sidebar.service_list
         )
 
@@ -65,16 +75,70 @@ class Sidebar:
             logger.error(f'ERROR: {uploaded_file=}')
 
     def csv_service(self):
-        uploaded_files = self.st.file_uploader("Choose a CSV file", type='csv', accept_multiple_files=False)
+        c1, c2 = self.st.columns([0.3, 0.7])
+
+        with c1:
+            get_tmp_file = None
+            if self.st.button('Use Classification Data'):
+                get_tmp_file = get_classification_buffer_data()
+            if self.st.button('Use Regression Data'):
+                get_tmp_file = get_regression_buffer_data()
+        with c2:
+            uploaded_files = self.st.file_uploader("Or Your CSV file", type='csv', accept_multiple_files=False)
+
+        if get_tmp_file is not None:
+            uploaded_files = get_tmp_file
+            self.st.info('Use Temp Data Now')
+
         try:
             if uploaded_files is not None:
-                csv_service = CsvService(filepath_or_buffer=uploaded_files)
+                with self.st.spinner('Wait for it...'):
+                    csv_service = CsvService(filepath_or_buffer=uploaded_files)
 
-                self.st.markdown('- show upload csv file')
-                self.st.dataframe(csv_service.df)
+                tab1, tab2 = self.st.tabs(['Check Upload CSV File', 'sklearn Service'])
 
-                self.st.markdown('- diff_column')
-                self.st.dataframe(csv_service.calc_diff())
+                with tab1:  # Check Upload CSV File
+                    with self.st.expander(label='Show Upload CSV File'):
+                        self.st.table(csv_service.df)
+
+                    with self.st.expander(label='Show Graph of Upload CSV File'):
+                        self.st.line_chart(csv_service.df)
+
+                    self.st.markdown('- diff_column')
+                    self.st.table(csv_service.calc_diff())
+
+                with tab2:  # sklearn Service
+                    predict_type = self.st.selectbox(
+                        label='Predict Type',
+                        options=SklearnService.predict_type_list
+                    )
+                    with self.st.form(key='sklearn_service_form'):
+                        model_name = self.st.selectbox(
+                            label='Model Name',
+                            options=SklearnService.model_name_dict[predict_type]
+                        )
+                        predict_column_name = self.st.selectbox(
+                            label='Predict Column Name',
+                            options=csv_service.df.columns
+                        )
+                        submitted = self.st.form_submit_button(label='Train And Test')
+
+                        if predict_type is not None and model_name is not None and predict_column_name is not None and submitted:
+                            with self.st.spinner('Wait for it...'):
+                                print(f'st check: {predict_type=}, {model_name=}')
+                                sklearn_service = SklearnService(predict_type=predict_type, model_name=model_name)
+                                print('foo')
+                                sklearn_service.main(df=csv_service.df, predict_column_name=predict_column_name)
+
+                            # tabs after fit model
+                            result_tab, feature_importance_tab = self.st.tabs(['Result', 'Feature Importance'])
+                            with result_tab:
+                                self.st.metric(label='Result Score',
+                                               value=sklearn_service.result_score)
+                                self.st.markdown('Test Data And Predict Value')
+                                self.st.table(data=sklearn_service.submission_df)
+                            with feature_importance_tab:
+                                self.st.table(data=sklearn_service.model.feature_importances_)
 
         except Exception as e:
             logger.error(f'ERROR: {uploaded_files=}')

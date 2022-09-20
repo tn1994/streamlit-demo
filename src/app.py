@@ -19,10 +19,14 @@ class APP:
     def __init__(self):
         if self.env not in ['prod', 'develop']:
             raise ValueError
+        self.st.set_page_config(
+            page_title='tn1994/streamlit-demo',
+            layout='wide'
+        )
 
     def main(self):
         option = self.st.sidebar.selectbox(
-            label='main page:',
+            label='Main Page',
             options=['login', 'main'],
             index=1 if self.st.session_state.is_authorization else 0
         )
