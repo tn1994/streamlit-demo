@@ -74,7 +74,7 @@ class StockService:
             Date = datetime.date(Date.year, Date.month, Date.day - 1)
         return Date.strftime("%Y-%m-%d")
 
-    def get_stock(self, code, start_date, end_date):
+    def get_stock(self, code, start_date, end_date) -> pd.DataFrame:
         df = web.DataReader(code, data_source='stooq', start=start_date, end=end_date)
         df = df.iloc[::-1]
         return df

@@ -82,15 +82,21 @@ class Sidebar:
     def stock_service(self):
         stock_service = StockService()
 
-        tab1, tab2 = self.st.tabs(['check_signal', 'check_per_ticker'])
+        tab1, tab2, tab3 = self.st.tabs(['Check Signal', 'Check Per Ticker', 'Check Stock Value'])
 
         with tab1:  # check_signal
+            self.st.info(f'Ticker: {", ".join(stock_service.ticker_list)}')
             with self.st.form('check_signal_form'):
 
-                start_date = self.st.date_input('Start date', datetime.date(2020, 1, 1))
-                end_date = self.st.date_input('End date')
-                how_date = self.st.date_input('How long in the past do you check signals?',
-                                              datetime.date.today() - timedelta(7))
+                c1, c2, c3, c4 = self.st.columns([0.25, 0.25, 0.25, 0.25])
+
+                with c1:
+                    start_date = self.st.date_input('Start date', datetime.date(2020, 1, 1))
+                with c2:
+                    end_date = self.st.date_input('End date')
+                with c3:
+                    how_date = self.st.date_input('How long in the past do you check signals?',
+                                                  datetime.date.today() - timedelta(7))
 
                 if start_date > end_date:
                     self.st.error('Please start_date before end_date.')
@@ -102,22 +108,24 @@ class Sidebar:
                 else:
                     is_check_signal_start_disabled: bool = False
 
-                submitted = self.st.form_submit_button(label='start')
+                with c4:
+                    self.st.markdown('Get Signal Result')
+                    submitted = self.st.form_submit_button(label='GET')
 
-            if not is_check_signal_start_disabled and submitted:
-                with self.st.spinner('Wait for it...'):
-                    stock_service.signal_check_main(start_date=start_date, end_date=end_date, how_date=how_date)
-                self.st.success('Success')
-                self.st.info(f'{start_date=}, {end_date=}, {how_date=}')
-                self.st.table(stock_service.get_result_signal_df())
+                if not is_check_signal_start_disabled and submitted:
+                    with self.st.spinner('Wait for it...'):
+                        stock_service.signal_check_main(start_date=start_date, end_date=end_date, how_date=how_date)
+                    self.st.success('Success')
+                    self.st.info(f'{start_date=}, {end_date=}, {how_date=}')
+                    self.st.table(stock_service.get_result_signal_df())
 
         with tab2:  # check_per_ticker
-            with self.st.form('check_per_ticker_form'):
+            with self.st.form(key='check_per_ticker_form'):
                 option = self.st.selectbox(
-                    'ticker:',
-                    stock_service.ticker_list
+                    label='Ticker',
+                    options=stock_service.ticker_list
                 )
-                submitted = self.st.form_submit_button(label='start')
+                submitted = self.st.form_submit_button(label='GET')
 
             if option is not None and submitted:
                 with self.st.spinner('Wait for it...'):
@@ -137,13 +145,54 @@ class Sidebar:
                     self.st.markdown('## MACD')
                     self.st.pyplot(stock_service.macd_fig)
 
+        with tab3:  # check_stock_value
+            is_view_df: bool = False
+
+            with self.st.form(key='check_stock_value_form'):
+
+                c1, c2, c3, c4 = self.st.columns([0.25, 0.25, 0.25, 0.25])
+
+                with c1:
+                    option = self.st.selectbox(
+                        label='Ticker',
+                        options=stock_service.ticker_list
+                    )
+                with c2:
+                    start_date = self.st.date_input('Start date', datetime.date(2020, 1, 1))
+                with c3:
+                    end_date = self.st.date_input('End date')
+
+                    if start_date > end_date:
+                        self.st.error('Please start_date before end_date.')
+                        is_check_stock_value_start_disabled: bool = True
+                    else:
+                        is_check_stock_value_start_disabled: bool = False
+                with c4:
+                    self.st.markdown('Get Stock Value')
+                    submitted = self.st.form_submit_button(label='GET')
+
+                if option is not None and not is_check_stock_value_start_disabled and submitted:
+                    with self.st.spinner('Wait for it...'):
+                        df = stock_service.get_stock(code=option, start_date=start_date, end_date=end_date)
+                    self.st.info(f'Ticker: {option}')
+                    self.st.line_chart(df.drop(columns=['Volume']))
+                    self.st.bar_chart(df['Volume'])
+                    is_view_df = True
+
+            with self.st.expander(label='Stock Value Table', expanded=True):
+                if is_view_df:
+                    self.st.table(df)
+
     def etc_service(self):
         self.st.markdown("""
-        |Sub Page       |Functions|
-        |---------------|-----------|
-        |image_service  |upload|
-        |               |view|
-        |csv_service    |upload|
-        |               |view|
-        |etc            |*this page*|
+        |Sub Page       |Functions        |
+        |---------------|-----------------|
+        |image_service  |upload           |
+        |               |view             |
+        |csv_service    |upload           |
+        |               |view             |
+        |stock_service  |Check Signal     |
+        |               |CHeck Per Ticker |
+        |               |CHeck Stock Value|
+        |etc            |*this page*      |
         """)
