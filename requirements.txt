@@ -11,3 +11,7 @@ transformers
 sentencepiece
 torch
 torchvision
+keybert
+sentence-transformers
+mecab-python3
+unidic-lite

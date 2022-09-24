@@ -116,7 +116,7 @@ class HuggingFaceBuiltInService:
         'rinna/japanese-roberta-base': '[CLS]4年に1度[MASK]は開かれる。'
     }
 
-    def get_example_value(self, model_name):
+    def get_example_value(self, model_name: str):
         try:
             if not isinstance(model_name, str):
                 raise TypeError

@@ -14,6 +14,7 @@ try:
     from ..services.aws_service import AWSService
     from ..services.hugging_face_service import HuggingFaceService
     from ..services.hugging_face_service import HuggingFaceBuiltInService
+    from ..services.keybert_service import KeyBERTService
     from ..services.stock_service import StockService
     from ..services.stock_service import color_survived
     from ..services.calc_service import CalcService
@@ -29,6 +30,7 @@ except ImportError:
     from services.aws_service import AWSService
     from services.hugging_face_service import HuggingFaceService
     from services.hugging_face_service import HuggingFaceBuiltInService
+    from services.keybert_service import KeyBERTService
     from services.stock_service import StockService
     from services.stock_service import color_survived
     from services.calc_service import CalcService
@@ -45,6 +47,7 @@ class Sidebar:  # todo: refactor
             'csv_service': self.csv_service,
             'aws_service': self.aws_service,
             'hugging_face_service': self.hugging_face_service,
+            'keybert_service': self.keybert_service,
             'stock_service': self.stock_service,
             'calc_service': self.calc_service,
             'markdown_service': self.markdown_service,
@@ -207,6 +210,10 @@ class Sidebar:  # todo: refactor
     def hugging_face_service(self):
         hugging_face_view = HuggingFaceView()
         hugging_face_view.main()
+
+    def keybert_service(self):
+        keybert_view = KeyBERTView()
+        keybert_view.main()
 
     def stock_service(self):
         st.title('Stock service')
@@ -412,7 +419,7 @@ class Sidebar:  # todo: refactor
 
 
 class HuggingFaceView:
-    title: str = 'Hugging Face service'
+    title: str = 'Hugging Face Service'
     main_tab_list: list = ['Hugging Face Inference API', 'Built in']
 
     def main(self):
@@ -499,3 +506,68 @@ class HuggingFaceView:
         except Exception as e:
             logger.error(e)
             st.error('Built in error')
+
+
+class KeyBERTView:
+    title: str = 'KeyBERT Service'
+    main_tab_list: list = ['Select Model KeyBERT Service', 'Base KeyBERT Service']
+
+    def main(self):
+        st.title(self.title)
+        tab_select_model_keybert, tab_base_keybert = st.tabs(self.main_tab_list)
+
+        try:
+            with tab_select_model_keybert:
+                self._view_select_keybert_service()
+        except Exception as e:
+            logger.error(e)
+            st.error('Select KeyBERT error')
+
+        try:
+            with tab_base_keybert:
+                self._view_base_keybert_service()
+        except Exception as e:
+            logger.error(e)
+            st.error('Base KeyBERT error')
+
+    def _view_select_keybert_service(self):
+        try:
+            keybert_service = KeyBERTService()
+
+            select_model_name = st.selectbox(label='Select Model', options=keybert_service.word_embedding_model_list)
+            with st.form(key='select_keybert_form'):
+                payload = st.text_area(label='Doc',
+                                       value=keybert_service.get_example_value(model_name=select_model_name))
+                add_tokens = st.text_area(label='Add Token',
+                                          value=keybert_service.get_example_add_tokens(model_name=select_model_name))
+                submitted = st.form_submit_button(label='Inference')
+
+                if select_model_name is not None and 0 != len(payload) and submitted:
+                    with st.spinner('Wait for it...'):
+                        if add_tokens is not None:
+                            result = keybert_service.main(model_name=select_model_name, payload=payload,
+                                                          add_tokens=add_tokens)
+                        else:
+                            result = keybert_service.main(model_name=select_model_name, payload=payload)
+                    st.markdown('### Result')
+                    st.table(result)
+        except Exception as e:
+            logger.error(e)
+            raise e
+
+    def _view_base_keybert_service(self):
+        try:
+            keybert_service = KeyBERTService()
+
+            with st.form(key='base_keybert_form'):
+                payload = st.text_area(label='Doc')
+                submitted = st.form_submit_button(label='Inference')
+
+                if 0 != len(payload) and submitted:
+                    with st.spinner('Wait for it...'):
+                        result = keybert_service.base_extract_keywords(payload=payload)
+                    st.markdown('### Result')
+                    st.table(result)
+        except Exception as e:
+            logger.error(e)
+            raise e
