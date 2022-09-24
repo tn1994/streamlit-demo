@@ -56,6 +56,8 @@ class NotionService:
                                 logger.info(f'{attribute.type=}')
                         tmp_dict[key] = value
                     result_list.append(tmp_dict)
+            else:
+                raise
         except Exception as e:
             logger.error(e)
         else:
