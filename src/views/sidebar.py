@@ -12,6 +12,8 @@ try:
     from ..services.csv_service import get_classification_buffer_data
     from ..services.csv_service import get_regression_buffer_data
     from ..services.aws_service import AWSService
+    from ..services.hugging_face_service import HuggingFaceService
+    from ..services.hugging_face_service import HuggingFaceBuiltInService
     from ..services.stock_service import StockService
     from ..services.stock_service import color_survived
     from ..services.calc_service import CalcService
@@ -25,6 +27,8 @@ except ImportError:
     from services.csv_service import get_classification_buffer_data
     from services.csv_service import get_regression_buffer_data
     from services.aws_service import AWSService
+    from services.hugging_face_service import HuggingFaceService
+    from services.hugging_face_service import HuggingFaceBuiltInService
     from services.stock_service import StockService
     from services.stock_service import color_survived
     from services.calc_service import CalcService
@@ -40,6 +44,7 @@ class Sidebar:  # todo: refactor
             'image_service': self.image_service,
             'csv_service': self.csv_service,
             'aws_service': self.aws_service,
+            'hugging_face_service': self.hugging_face_service,
             'stock_service': self.stock_service,
             'calc_service': self.calc_service,
             'markdown_service': self.markdown_service,
@@ -198,6 +203,10 @@ class Sidebar:  # todo: refactor
         except Exception as e:
             logger.error(e)
             st.error('aws access error')
+
+    def hugging_face_service(self):
+        hugging_face_view = HuggingFaceView()
+        hugging_face_view.main()
 
     def stock_service(self):
         st.title('Stock service')
@@ -371,28 +380,122 @@ class Sidebar:  # todo: refactor
     def etc_service(self):
         st.title('Sub Page Info')
         st.markdown("""
-        |Sub Page          |Functions                          |Remarks             |
-        |------------------|-----------------------------------|--------------------|
-        |image_service     |upload                             |                    |
-        |                  |view                               |                    |
-        |csv_service       |upload csv file                    |                    |
-        |                  |use temp data                      |                    |
-        |                  |Data Info                          |                    |
-        |                  |sklearn service                    |                    |
-        |aws_service       |Billing - All Billing              |must set st.secrets |
-        |                  |Billing - Billing Per Service      |must set st.secrets |
-        |                  |S3 - Show List Buckets             |must set st.secrets |
-        |stock_service     |Check Signal                       |                    |
-        |                  |CHeck Per Ticker                   |                    |
-        |                  |CHeck Stock Value                  |                    |
-        |calc_service      |Calc Eval                          |                    |
-        |markdown_service  |Markdown text input                |                    |
-        |                  |Markdown text view                 |                    |
-        |                  |CHeck Stock Value                  |                    |
-        |notion_service    |Get Notion Database                |must set st.secrets |
-        |version_service   |Get requirements.txt               |                    |
-        |                  |View Python Version                |                    |
-        |                  |View Pip Version                   |                    |
-        |                  |View Streamlit Version             |                    |
-        |etc               |*this page*                        |                    |
+        |Sub Page                 |Functions                                            |Remarks             |
+        |-------------------------|-----------------------------------------------------|--------------------|
+        |image_service            |upload                                               |                    |
+        |                         |view                                                 |                    |
+        |csv_service              |upload csv file                                      |                    |
+        |                         |use temp data                                        |                    |
+        |                         |Data Info                                            |                    |
+        |                         |sklearn service                                      |                    |
+        |aws_service              |Billing - All Billing                                |must set st.secrets |
+        |                         |Billing - Billing Per Service                        |must set st.secrets |
+        |                         |S3 - Show List Buckets                               |must set st.secrets |
+        |hugging_face_service     |Hugging Face Inference API - Text Generation         |must set st.secrets |
+        |                         |Hugging Face Inference API - Fill Mask               |must set st.secrets |
+        |                         |Built in - Text Generation                           |                    |
+        |                         |Built in - Fill Mask                                 |                    |
+        |stock_service            |Check Signal                                         |                    |
+        |                         |CHeck Per Ticker                                     |                    |
+        |                         |CHeck Stock Value                                    |                    |
+        |calc_service             |Calc Eval                                            |                    |
+        |markdown_service         |Markdown text input                                  |                    |
+        |                         |Markdown text view                                   |                    |
+        |                         |CHeck Stock Value                                    |                    |
+        |notion_service           |Get Notion Database                                  |must set st.secrets |
+        |version_service          |Get requirements.txt                                 |                    |
+        |                         |View Python Version                                  |                    |
+        |                         |View Pip Version                                     |                    |
+        |                         |View Streamlit Version                               |                    |
+        |etc                      |*this page*                                          |                    |
         """)
+
+
+class HuggingFaceView:
+    title: str = 'Hugging Face service'
+    main_tab_list: list = ['Hugging Face Inference API', 'Built in']
+
+    def main(self):
+        st.title(self.title)
+        tab_api, tab_built_in = st.tabs(self.main_tab_list)
+        try:
+            with tab_api:  # API tab
+                hugging_face_service = HuggingFaceService(access_token=st.secrets['hugging_face_access_token'])
+
+                tab1, tab2 = st.tabs(hugging_face_service.task_list)
+                with tab1:
+                    select_model_name = st.selectbox(label='Select Model',
+                                                     options=hugging_face_service.text_generation_model_id_list)
+                    with st.form(key='task_generation_form'):
+                        payload = st.text_input(label='Query',
+                                                value=hugging_face_service.get_example_value(
+                                                    model_name=select_model_name))
+                        submitted = st.form_submit_button(label='Inference')
+
+                        if select_model_name is not None and 0 != len(payload) and submitted:
+                            with st.spinner(text='Wait for it...'):
+                                result = hugging_face_service.query(payload=payload, model_name=select_model_name)
+                            st.info(f'Input Text: \n\n {payload}')
+                            st.info(f'Result: \n\n {result[0]["generated_text"]}')
+                with tab2:
+                    select_model_name = st.selectbox(label='Select Model',
+                                                     options=hugging_face_service.fill_mask_model_id_list)
+                    with st.form(key='fill_mask_form'):
+                        payload = st.text_input(label='Query',
+                                                value=hugging_face_service.get_example_value(
+                                                    model_name=select_model_name))
+                        submitted = st.form_submit_button(label='Inference')
+
+                        if select_model_name is not None and 0 != len(payload) and submitted:
+                            with st.spinner(text='Wait for it...'):
+                                result = hugging_face_service.query(payload=payload, model_name=select_model_name)
+                            st.info(f'Input Text: \n\n {payload}')
+                            st.markdown('### Result')
+                            st.table(result)
+        except Exception as e:
+            logger.error(e)
+            st.error('huggingface_access_token error')
+
+        try:
+            with tab_built_in:  # Built in tab
+                hugging_face_built_in_service = HuggingFaceBuiltInService()
+
+                tab1, tab2 = st.tabs(hugging_face_built_in_service.task_list)
+
+                with tab1:
+                    select_model_name = st.selectbox(label='Select Model',
+                                                     options=hugging_face_built_in_service.text_generation_model_id_list)
+                    with st.form(key='task_generation_built_in_form'):
+                        payload = st.text_input(label='Query',
+                                                value=hugging_face_built_in_service.get_example_value(
+                                                    model_name=select_model_name))
+                        submitted = st.form_submit_button(label='Inference')
+
+                        if select_model_name is not None and 0 != len(payload) and submitted:
+                            with st.spinner('Wait for it...'):
+                                result = hugging_face_built_in_service.inference(payload=payload,
+                                                                                 model_name=select_model_name)
+                            st.info(f'Input Text: \n\n {payload}')
+                            for sentence in result:
+                                st.info(f'Result: \n\n {sentence}')
+
+                with tab2:
+                    select_model_name = st.selectbox(label='Select Model',
+                                                     options=hugging_face_built_in_service.fill_mask_model_id_list)
+                    with st.form(key='fill_mask_built_in_form'):
+                        payload = st.text_input(label='Query',
+                                                value=hugging_face_built_in_service.get_example_value(
+                                                    model_name=select_model_name))
+                        submitted = st.form_submit_button(label='Inference')
+
+                        if select_model_name is not None and 0 != len(payload) and submitted:
+                            with st.spinner('Wait for it...'):
+                                result = hugging_face_built_in_service.inference(payload=payload,
+                                                                                 model_name=select_model_name)
+                            st.info(f'Input Text: \n\n {payload}')
+                            st.markdown('### Result')
+                            st.table(result)
+
+        except Exception as e:
+            logger.error(e)
+            st.error('Built in error')

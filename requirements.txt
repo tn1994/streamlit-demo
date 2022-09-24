@@ -7,3 +7,7 @@ seaborn
 jpholiday
 pandas_datareader
 boto3
+transformers
+sentencepiece
+torch
+torchvision
