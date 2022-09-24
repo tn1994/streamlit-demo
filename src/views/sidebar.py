@@ -1,3 +1,4 @@
+import uuid
 import logging
 import datetime
 from datetime import timedelta
@@ -321,24 +322,47 @@ class Sidebar:  # todo: refactor
                     st.table(df)
 
     def calc_service(self):
+        """
+        ref: https://zenn.dev/megane_otoko/articles/086_streamlit_session_state
+        :return:
+        """
         st.title('Calc Service')
         calc_service = CalcService()
 
-        variables = st.text_input('variables')
-        input = st.text_input('eval')
+        if 'calc_service_variable_unique_id' not in st.session_state:
+            st.session_state.calc_service_variable_unique_id = []
+
+        c1, c2, _ = st.columns([0.2, 0.2, 0.6])
+        with c1:
+            if st.button('Add Variable'):
+                st.session_state.calc_service_variable_unique_id.append(uuid.uuid1())
+        with c2:
+            if st.button("Delete Variable") and 1 < len(st.session_state.calc_service_variable_unique_id):
+                st.session_state.calc_service_variable_unique_id.pop(-1)
+
+        variables: str = ''
+        for unique_id in st.session_state.calc_service_variable_unique_id:
+            variable = st.text_input(label='variables', key=unique_id, value='a = 1_000_000')
+            if variable is not None:
+                match len(variables):
+                    case 0:
+                        variables = variable
+                    case _:
+                        variables = f'{variables}; {variable}'
+
+        input = st.text_input(label='eval', value='a / 3_000_000')
+
         try:
             result = None
-            if not isinstance(input, str):
-                input = str(input)
-            if input is not None and variables is not None:
+            if input is not None and 0 != len(input) and variables is not None:
+                logger.info(f'{variables=}')
                 result = calc_service.get_eval(input, variables)
-            elif input is not None:
+            elif input is not None and 0 != len(input):
                 result = calc_service.get_eval(input)
-            if result is None:
-                raise ValueError
         except Exception as e:
             st.metric(label='Variables', value=variables)
             st.metric(label='Text Input', value=input)
+            st.error(e)
         else:
             st.metric(label='Variables', value=variables)
             st.metric(label='Result', value=result)
