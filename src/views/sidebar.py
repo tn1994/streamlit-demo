@@ -330,7 +330,7 @@ class Sidebar:  # todo: refactor
         calc_service = CalcService()
 
         if 'calc_service_variable_unique_id' not in st.session_state:
-            st.session_state.calc_service_variable_unique_id = []
+            st.session_state.calc_service_variable_unique_id = [uuid.uuid1()]
 
         c1, c2, _ = st.columns([0.2, 0.2, 0.6])
         with c1:
