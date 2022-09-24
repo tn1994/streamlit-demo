@@ -11,9 +11,10 @@ try:
     from ..services.csv_service import CsvService
     from ..services.csv_service import get_classification_buffer_data
     from ..services.csv_service import get_regression_buffer_data
-    from ..services.calc_service import CalcService
+    from ..services.aws_service import AWSService
     from ..services.stock_service import StockService
     from ..services.stock_service import color_survived
+    from ..services.calc_service import CalcService
     from ..services.notion_service import NotionService
     from ..services.version_service import VersionService
     from ..services.sklearn_service import SklearnService
@@ -23,9 +24,10 @@ except ImportError:
     from services.csv_service import CsvService
     from services.csv_service import get_classification_buffer_data
     from services.csv_service import get_regression_buffer_data
-    from services.calc_service import CalcService
+    from services.aws_service import AWSService
     from services.stock_service import StockService
     from services.stock_service import color_survived
+    from services.calc_service import CalcService
     from services.notion_service import NotionService
     from services.version_service import VersionService
     from services.sklearn_service import SklearnService
@@ -37,6 +39,7 @@ class Sidebar:  # todo: refactor
         self.service_dict = {
             'image_service': self.image_service,
             'csv_service': self.csv_service,
+            'aws_service': self.aws_service,
             'stock_service': self.stock_service,
             'calc_service': self.calc_service,
             'markdown_service': self.markdown_service,
@@ -150,6 +153,51 @@ class Sidebar:  # todo: refactor
 
         except Exception as e:
             logger.error(f'ERROR: {uploaded_files=}')
+
+    def aws_service(self):
+        st.title('AWS Service')
+
+        try:
+            aws_service = AWSService(
+                aws_access_key_id=st.secrets['aws_access_key_id'],
+                aws_secret_access_key=st.secrets['aws_secret_access_key'],
+                region_name=st.secrets['region_name']
+            )
+
+            tab1, tab2 = st.tabs(['Billing', 'S3'])
+
+            with tab1:
+                with st.expander('All Billing', expanded=True):
+                    if st.button('Show Billing'):
+                        with st.spinner('Wait for it...'):
+                            billing = aws_service.get_total_billing()
+                        c1, c2, c3 = st.columns(3)
+                        with c1:
+                            from decimal import Decimal, ROUND_HALF_UP
+                            _billing = Decimal(billing["billing"]).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                            st.metric(label=f'Billing', value=f'${_billing}-')
+                        with c2:
+                            st.metric(label=f'From', value=f'{billing["start"]}')
+                        with c3:
+                            st.metric(label=f'To', value=f'{billing["end"]}')
+
+                with st.expander('Billing Per Service', expanded=True):
+                    if st.button('Show Per Service'):
+                        import pandas as pd
+                        with st.spinner('Wait for it...'):
+                            billing = aws_service.get_service_billings()
+                        _billing = pd.DataFrame(billing).astype({'service_name': str, 'billing': float})
+                        st.bar_chart(_billing, x='service_name', y='billing')
+                        st.table(_billing)
+
+            with tab2:
+                if st.button('Show List Buckets'):
+                    with st.spinner('Wait for it...'):
+                        list_buckets = aws_service.get_list_buckets()
+                    st.table(list_buckets['Buckets'])
+        except Exception as e:
+            logger.error(e)
+            st.error('aws access error')
 
     def stock_service(self):
         st.title('Stock service')
