@@ -17,7 +17,7 @@ from sklearn.ensemble import AdaBoostRegressor
 from sklearn.ensemble import ExtraTreesRegressor
 from sklearn.ensemble import HistGradientBoostingRegressor
 
-SEED = 42
+SEED: int = 42
 
 random.seed(SEED)  # random
 
