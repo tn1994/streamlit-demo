@@ -18,9 +18,12 @@ class VersionService:
         return pip.__version__
 
     def get_library_version(self, library_name):
-        list_files = subprocess.run(['pip', 'show', library_name], capture_output=True)
+        list_files = subprocess.run(['pip3', 'show', library_name], capture_output=True)
         version = re.search(r'[\d.]+', list_files.stdout.decode())
-        return version.group()
+        if version is None:
+            return '-'
+        else:
+            return version.group()
 
     def get_pip_list(self, format: str = 'json'):
         """
@@ -30,7 +33,7 @@ class VersionService:
         if format not in ['json', 'freeze', 'columns']:
             raise ValueError
 
-        list_files = subprocess.run(['pip', 'list', '--format', format], capture_output=True)
+        list_files = subprocess.run(['pip3', 'list', '--format', format], capture_output=True)
 
         match format:
             case 'json':
