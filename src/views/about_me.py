@@ -7,13 +7,14 @@ class AboutMe:
     def main():
         """
         ref: https://qiita.com/s-yoshiki/items/436bbe1f7160b610b05c
+        ref: https://simpleicons.org/
         :return:
         """
 
         with st.expander(label='About me', expanded=True):
             st.markdown('### About me')
 
-            c1, c2, c3, c4, c5 = st.columns(5)
+            c1, c2, c3 = st.columns(3)
             with c1:
                 st.markdown('#### Link')
                 st.markdown(
@@ -30,7 +31,6 @@ class AboutMe:
                 st.markdown(
                     f'[![](https://img.shields.io/badge/-Twitter-232F3E.svg?logo=twitter&style=flat)](https://twitter.com/{_twitter_user_name})')
 
-            with c2:
                 st.markdown('#### Code')
                 get_badge_as_markdown(logo='Python')
                 get_badge_as_markdown(logo='TypeScript')
@@ -39,35 +39,36 @@ class AboutMe:
                 get_badge_as_markdown(logo='Terraform')
                 get_badge_as_markdown(logo='', subject='shell%20script')
 
-            with c3:
+            with c2:
                 st.markdown('#### Framework & Library')
-                get_badge_as_markdown(logo='Django')
+                st.markdown('##### AI')
                 get_badge_as_markdown(logo='PyTorch')
-                get_badge_as_markdown(logo='Streamlit')
-                get_badge_as_markdown(logo='React')
                 get_badge_as_markdown(logo='scikitlearn')
                 get_badge_as_markdown(logo='Numpy')
                 get_badge_as_markdown(logo='Pandas')
                 get_badge_as_markdown(logo='SciPy')
 
-            with c4:
-                st.markdown('#### Infra')
-                with st.container():
-                    get_badge_as_markdown(subject='Amazon%20AWS', logo='amazon-aws')
-                    get_badge_as_markdown(logo='Amazon%20EC2')
-                    get_badge_as_markdown(logo='Amazon%20RDS')
-                    get_badge_as_markdown(logo='Amazon%20S3')
-                    get_badge_as_markdown(logo='Amazon%20DynamoDB')
-                    get_badge_as_markdown(logo='Amazon%20CloudWatch')
-                    get_badge_as_markdown(logo='AWS%20Lambda')
-                    get_badge_as_markdown(logo='AWS%20Fargate')
+                st.markdown('##### Backend')
+                get_badge_as_markdown(logo='Django')
+                get_badge_as_markdown(logo='Streamlit')
 
-            with c5:
+                st.markdown('##### Frontend')
+                get_badge_as_markdown(logo='React')
+
+            with c3:
                 st.markdown('#### Infra')
+                get_badge_as_markdown(subject='Amazon%20AWS', logo='amazon-aws')
+                get_badge_as_markdown(logo='Amazon%20EC2')
+                get_badge_as_markdown(logo='Amazon%20RDS')
+                get_badge_as_markdown(logo='Amazon%20S3')
+                get_badge_as_markdown(logo='Amazon%20DynamoDB')
+                get_badge_as_markdown(logo='Amazon%20CloudWatch')
+                get_badge_as_markdown(logo='AWS%20Lambda')
+                get_badge_as_markdown(logo='AWS%20Fargate')
                 get_badge_as_markdown(subject='Amazon%20SageMaker', logo='amazon-aws')
                 get_badge_as_markdown(subject='Amazon%20CodePipeline', logo='amazon-aws')
 
-            c1, c2, c3, c4, c5 = st.columns(5)
+            c1, c2, c3, c4 = st.columns(4)
             with c1:
                 st.markdown('#### Deploy')
                 get_badge_as_markdown(logo='Linux')

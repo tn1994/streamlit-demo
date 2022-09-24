@@ -369,26 +369,30 @@ class Sidebar:  # todo: refactor
             st.table(pip_list)
 
     def etc_service(self):
+        st.title('Sub Page Info')
         st.markdown("""
-        |Sub Page          |Functions                  |Remarks             |
-        |------------------|---------------------------|--------------------|
-        |image_service     |upload                     |                    |
-        |                  |view                       |                    |
-        |csv_service       |upload csv file            |                    |
-        |                  |use temp data              |                    |
-        |                  |Data Info                  |                    |
-        |                  |sklearn service            |                    |
-        |stock_service     |Check Signal               |                    |
-        |                  |CHeck Per Ticker           |                    |
-        |                  |CHeck Stock Value          |                    |
-        |calc_service      |Calc Eval                  |                    |
-        |markdown_service  |Markdown text input        |                    |
-        |                  |Markdown text view         |                    |
-        |                  |CHeck Stock Value          |                    |
-        |notion_service    |Get Notion Database        |must set st.secrets |
-        |version_service   |Get requirements.txt       |                    |
-        |                  |View Python Version        |                    |
-        |                  |View Pip Version           |                    |
-        |                  |View Streamlit Version     |                    |
-        |etc               |*this page*                |                    |
+        |Sub Page          |Functions                          |Remarks             |
+        |------------------|-----------------------------------|--------------------|
+        |image_service     |upload                             |                    |
+        |                  |view                               |                    |
+        |csv_service       |upload csv file                    |                    |
+        |                  |use temp data                      |                    |
+        |                  |Data Info                          |                    |
+        |                  |sklearn service                    |                    |
+        |aws_service       |Billing - All Billing              |must set st.secrets |
+        |                  |Billing - Billing Per Service      |must set st.secrets |
+        |                  |S3 - Show List Buckets             |must set st.secrets |
+        |stock_service     |Check Signal                       |                    |
+        |                  |CHeck Per Ticker                   |                    |
+        |                  |CHeck Stock Value                  |                    |
+        |calc_service      |Calc Eval                          |                    |
+        |markdown_service  |Markdown text input                |                    |
+        |                  |Markdown text view                 |                    |
+        |                  |CHeck Stock Value                  |                    |
+        |notion_service    |Get Notion Database                |must set st.secrets |
+        |version_service   |Get requirements.txt               |                    |
+        |                  |View Python Version                |                    |
+        |                  |View Pip Version                   |                    |
+        |                  |View Streamlit Version             |                    |
+        |etc               |*this page*                        |                    |
         """)
