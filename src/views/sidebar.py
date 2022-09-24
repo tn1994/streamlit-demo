@@ -2,6 +2,8 @@ import logging
 import datetime
 from datetime import timedelta
 
+import streamlit as st
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -9,261 +11,304 @@ try:
     from ..services.csv_service import CsvService
     from ..services.csv_service import get_classification_buffer_data
     from ..services.csv_service import get_regression_buffer_data
+    from ..services.calc_service import CalcService
     from ..services.stock_service import StockService
+    from ..services.notion_service import NotionService
+
     from ..services.stock_service import color_survived
     from ..services.sklearn_service import SklearnService
 except ImportError:
-    logger.info('check: ImportError')
+    logger.info('check: ImportError')  # todo: fix import error
     from services.image_service import ImageService
     from services.csv_service import CsvService
     from services.csv_service import get_classification_buffer_data
     from services.csv_service import get_regression_buffer_data
+    from services.calc_service import CalcService
     from services.stock_service import StockService
+
+    from services.notion_service import NotionService
+
     from services.stock_service import color_survived
     from services.sklearn_service import SklearnService
 
 
 class Sidebar:
     radio_value: str
-    service_list = [
-        'image_service',
-        'csv_service',
-        'stock_service',
-        'etc'
-    ]
 
-    def __init__(self, st):
-        self.st = st
-        self.main()
+    def __init__(self):
+        self.service_dict = {
+            'image_service': self.image_service,
+            'csv_service': self.csv_service,
+            'stock_service': self.stock_service,
+            'calc_service': self.calc_service,
+            'markdown_service': self.markdown_service,
+            'notion_service': self.notion_service,
+            'etc': self.etc_service
+        }
 
     def main(self):
-        option = self.st.sidebar.selectbox(
+        option = st.sidebar.selectbox(
             'Sub Page',
-            Sidebar.service_list
+            self.service_dict.keys()
         )
-
-        match option:
-            case 'image_service':
-                self.st.title('image service')
-                self.image_service()
-            case 'csv_service':
-                self.st.title('csv service')
-                self.csv_service()
-            case 'stock_service':
-                self.st.title('storck service')
-                self.stock_service()
-            case 'etc':
-                self.etc_service()
-            case _:
-                pass
+        select_service = self.service_dict[option]
+        select_service()
 
     def _check_radio(self):
-        radio_value = self.st.sidebar.radio('check_radio', self.service_list)
+        radio_value = st.sidebar.radio('check_radio', self.service_dict.keys())
         if radio_value:
             self.radio_value = radio_value
 
     def image_service(self):
-        uploaded_file = self.st.file_uploader('Choose a image file.', type=['jpeg', 'png'])
+        st.title('Image service')
+        uploaded_file = st.file_uploader('Choose a image file.', type=['jpeg', 'png'])
         try:
             if uploaded_file is not None:
                 image_service = ImageService(fp=uploaded_file)
-                self.st.image(image_service.image, caption='upload image', use_column_width=True)
+                st.image(image_service.image, caption='upload image', use_column_width=True)
         except Exception as e:
             logger.error(f'ERROR: {uploaded_file=}')
 
     def csv_service(self):
-        tab1, tab2 = self.st.tabs(['Use Your CSV File', 'Use Temp Data'])
+        st.title('CSV service')
 
-        if 'is_use_tmp_classification_data' not in self.st.session_state and 'is_use_tmp_regression_data' not in self.st.session_state:
-            self.st.session_state.is_use_tmp_classification_data = False
-            self.st.session_state.is_use_tmp_regression_data = False
+        tab1, tab2 = st.tabs(['Use Your CSV File', 'Use Temp Data'])
+
+        if 'is_use_tmp_classification_data' not in st.session_state and 'is_use_tmp_regression_data' not in st.session_state:
+            st.session_state.is_use_tmp_classification_data = False
+            st.session_state.is_use_tmp_regression_data = False
 
         # todo: session handling, when exists csv in uploaded_file zone
         with tab2:  # temp data tab
-            if self.st.button('Use Classification Data'):
-                self.st.session_state.is_use_tmp_classification_data = True
-                self.st.session_state.is_use_tmp_regression_data = False
-            if self.st.button('Use Regression Data'):
-                self.st.session_state.is_use_tmp_classification_data = False
-                self.st.session_state.is_use_tmp_regression_data = True
+            if st.button('Use Classification Data'):
+                st.session_state.is_use_tmp_classification_data = True
+                st.session_state.is_use_tmp_regression_data = False
+            if st.button('Use Regression Data'):
+                st.session_state.is_use_tmp_classification_data = False
+                st.session_state.is_use_tmp_regression_data = True
         with tab1:  # uploaded_files of csv tab
-            uploaded_files = self.st.file_uploader("Or Your CSV file", type='csv', accept_multiple_files=False)
+            uploaded_files = st.file_uploader("Or Your CSV file", type='csv', accept_multiple_files=False)
             if uploaded_files is not None and (
-                    self.st.session_state.is_use_tmp_classification_data or self.st.session_state.is_use_tmp_regression_data
-            ) and self.st.button('Use Upload CSV File'):
-                self.st.session_state.is_use_tmp_classification_data = False
-                self.st.session_state.is_use_tmp_regression_data = False
+                    st.session_state.is_use_tmp_classification_data or st.session_state.is_use_tmp_regression_data
+            ) and st.button('Use Upload CSV File'):
+                st.session_state.is_use_tmp_classification_data = False
+                st.session_state.is_use_tmp_regression_data = False
 
-        if self.st.session_state.is_use_tmp_classification_data and self.st.session_state.is_use_tmp_regression_data:
+        if st.session_state.is_use_tmp_classification_data and st.session_state.is_use_tmp_regression_data:
             raise ValueError
-        elif self.st.session_state.is_use_tmp_classification_data or self.st.session_state.is_use_tmp_regression_data:
-            self.st.metric(label='Now Select Data', value='Temp Data')
+        elif st.session_state.is_use_tmp_classification_data or st.session_state.is_use_tmp_regression_data:
+            st.metric(label='Now Select Data', value='Temp Data')
         elif uploaded_files is not None:
-            self.st.metric(label='Now Select Data', value='Upload CSV File')
+            st.metric(label='Now Select Data', value='Upload CSV File')
 
         try:
-            if self.st.session_state.is_use_tmp_classification_data or self.st.session_state.is_use_tmp_regression_data or uploaded_files is not None:
-                with self.st.spinner('Wait for it...'):
-                    if self.st.session_state.is_use_tmp_classification_data:
+            if st.session_state.is_use_tmp_classification_data or st.session_state.is_use_tmp_regression_data or uploaded_files is not None:
+                with st.spinner('Wait for it...'):
+                    if st.session_state.is_use_tmp_classification_data:
                         csv_service = CsvService(filepath_or_buffer=get_classification_buffer_data())
-                    elif self.st.session_state.is_use_tmp_regression_data:
+                    elif st.session_state.is_use_tmp_regression_data:
                         csv_service = CsvService(filepath_or_buffer=get_regression_buffer_data())
                     elif uploaded_files is not None:
                         csv_service = CsvService(filepath_or_buffer=uploaded_files)
                     else:
                         raise ValueError
 
-                tab1, tab2 = self.st.tabs(['Data Info', 'sklearn Service'])
+                tab1, tab2 = st.tabs(['Data Info', 'sklearn Service'])
 
                 with tab1:  # Check Upload CSV File
-                    with self.st.expander(label='Show Data'):
-                        self.st.table(csv_service.df)
+                    with st.expander(label='Show Data'):
+                        st.table(csv_service.df)
 
-                    with self.st.expander(label='Show Graph of Data', expanded=True):
-                        self.st.line_chart(csv_service.df)
+                    with st.expander(label='Show Graph of Data', expanded=True):
+                        st.line_chart(csv_service.df)
 
-                    with self.st.expander(label='Show Diff Column'):
-                        self.st.table(csv_service.calc_diff())
+                    with st.expander(label='Show Diff Column'):
+                        st.table(csv_service.calc_diff())
 
                 with tab2:  # sklearn Service
-                    predict_type = self.st.selectbox(
+                    predict_type = st.selectbox(
                         label='Predict Type',
                         options=SklearnService.predict_type_list
                     )
-                    with self.st.form(key='sklearn_service_form'):
-                        model_name = self.st.selectbox(
+                    with st.form(key='sklearn_service_form'):
+                        model_name = st.selectbox(
                             label='Model Name',
                             options=SklearnService.model_name_dict[predict_type]
                         )
-                        predict_column_name = self.st.selectbox(
+                        predict_column_name = st.selectbox(
                             label='Predict Column Name',
                             options=csv_service.df.columns
                         )
-                        submitted = self.st.form_submit_button(label='Train And Test')
+                        submitted = st.form_submit_button(label='Train And Test')
 
                         if predict_type is not None and model_name is not None and predict_column_name is not None and submitted:
-                            with self.st.spinner('Wait for it...'):
+                            with st.spinner('Wait for it...'):
                                 sklearn_service = SklearnService(predict_type=predict_type, model_name=model_name)
                                 sklearn_service.main(df=csv_service.df, predict_column_name=predict_column_name)
 
                             # tabs after fit model
-                            result_tab, feature_importance_tab = self.st.tabs(['Result', 'Feature Importance'])
+                            result_tab, feature_importance_tab = st.tabs(['Result', 'Feature Importance'])
                             with result_tab:
-                                self.st.metric(label='Result Score',
-                                               value=sklearn_service.result_score)
-                                self.st.markdown('Test Data And Predict Value')
-                                self.st.table(data=sklearn_service.submission_df)
+                                st.metric(label='Result Score',
+                                          value=sklearn_service.result_score)
+                                st.markdown('Test Data And Predict Value')
+                                st.table(data=sklearn_service.submission_df)
                             with feature_importance_tab:
-                                self.st.table(data=sklearn_service.model.feature_importances_)
+                                st.table(data=sklearn_service.model.feature_importances_)
 
         except Exception as e:
             logger.error(f'ERROR: {uploaded_files=}')
 
     def stock_service(self):
+        st.title('Stock service')
+
         stock_service = StockService()
 
-        tab1, tab2, tab3 = self.st.tabs(['Check Signal', 'Check Per Ticker', 'Check Stock Value'])
+        tab1, tab2, tab3 = st.tabs(['Check Signal', 'Check Per Ticker', 'Check Stock Value'])
 
         with tab1:  # check_signal
-            self.st.info(f'Ticker: {", ".join(stock_service.ticker_list)}')
-            with self.st.form('check_signal_form'):
+            st.info(f'Ticker: {", ".join(stock_service.ticker_list)}')
+            with st.form('check_signal_form'):
 
-                c1, c2, c3, c4 = self.st.columns([0.25, 0.25, 0.25, 0.25])
+                c1, c2, c3, c4 = st.columns([0.25, 0.25, 0.25, 0.25])
 
                 with c1:
-                    start_date = self.st.date_input('Start date', datetime.date(2020, 1, 1))
+                    start_date = st.date_input('Start date', datetime.date(2020, 1, 1))
                 with c2:
-                    end_date = self.st.date_input('End date')
+                    end_date = st.date_input('End date')
                 with c3:
-                    how_date = self.st.date_input('How long in the past do you check signals?',
-                                                  datetime.date.today() - timedelta(7))
+                    how_date = st.date_input('How long in the past do you check signals?',
+                                             datetime.date.today() - timedelta(7))
 
                 if start_date > end_date:
-                    self.st.error('Please start_date before end_date.')
+                    st.error('Please start_date before end_date.')
                     is_check_signal_start_disabled: bool = True
                 elif not (start_date < how_date < end_date):
-                    self.st.error('Please start_date before how_date. '
-                                  'And end_date after how_date.')
+                    st.error('Please start_date before how_date. '
+                             'And end_date after how_date.')
                     is_check_signal_start_disabled: bool = True
                 else:
                     is_check_signal_start_disabled: bool = False
 
                 with c4:
-                    self.st.markdown('Get Signal Result')
-                    submitted = self.st.form_submit_button(label='GET')
+                    st.markdown('Get Signal Result')
+                    submitted = st.form_submit_button(label='GET')
 
                 if not is_check_signal_start_disabled and submitted:
-                    with self.st.spinner('Wait for it...'):
+                    with st.spinner('Wait for it...'):
                         stock_service.signal_check_main(start_date=start_date, end_date=end_date, how_date=how_date)
-                    self.st.success('Success')
-                    self.st.info(f'{start_date=}, {end_date=}, {how_date=}')
-                    self.st.table(stock_service.get_result_signal_df())
+                    st.success('Success')
+                    st.info(f'{start_date=}, {end_date=}, {how_date=}')
+                    st.table(stock_service.get_result_signal_df())
 
         with tab2:  # check_per_ticker
-            with self.st.form(key='check_per_ticker_form'):
-                option = self.st.selectbox(
+            with st.form(key='check_per_ticker_form'):
+                option = st.selectbox(
                     label='Ticker',
                     options=stock_service.ticker_list
                 )
-                submitted = self.st.form_submit_button(label='GET')
+                submitted = st.form_submit_button(label='GET')
 
             if option is not None and submitted:
-                with self.st.spinner('Wait for it...'):
+                with st.spinner('Wait for it...'):
                     stock_service.main(ticker=option)
-                self.st.success('Success')
-                self.st.info(f'ticker: {option}')
-                with self.st.container():
-                    self.st.markdown('## Close Value')
-                    self.st.pyplot(stock_service.fig)
-                with self.st.container():
-                    self.st.markdown('## RCI')
-                    self.st.pyplot(stock_service.rci_fig)
-                with self.st.container():
-                    self.st.markdown('## RSI')
-                    self.st.pyplot(stock_service.rsi_fig)
-                with self.st.container():
-                    self.st.markdown('## MACD')
-                    self.st.pyplot(stock_service.macd_fig)
+                st.success('Success')
+                st.info(f'ticker: {option}')
+                with st.container():
+                    st.markdown('## Close Value')
+                    st.pyplot(stock_service.fig)
+                with st.container():
+                    st.markdown('## RCI')
+                    st.pyplot(stock_service.rci_fig)
+                with st.container():
+                    st.markdown('## RSI')
+                    st.pyplot(stock_service.rsi_fig)
+                with st.container():
+                    st.markdown('## MACD')
+                    st.pyplot(stock_service.macd_fig)
 
         with tab3:  # check_stock_value
             is_view_df: bool = False
 
-            with self.st.form(key='check_stock_value_form'):
+            with st.form(key='check_stock_value_form'):
 
-                c1, c2, c3, c4 = self.st.columns([0.25, 0.25, 0.25, 0.25])
+                c1, c2, c3, c4 = st.columns([0.25, 0.25, 0.25, 0.25])
 
                 with c1:
-                    option = self.st.selectbox(
+                    option = st.selectbox(
                         label='Ticker',
                         options=stock_service.ticker_list
                     )
                 with c2:
-                    start_date = self.st.date_input('Start date', datetime.date(2020, 1, 1))
+                    start_date = st.date_input('Start date', datetime.date(2020, 1, 1))
                 with c3:
-                    end_date = self.st.date_input('End date')
+                    end_date = st.date_input('End date')
                     if start_date > end_date:
-                        self.st.error('Please start_date before end_date.')
+                        st.error('Please start_date before end_date.')
                         is_check_stock_value_start_disabled: bool = True
                     else:
                         is_check_stock_value_start_disabled: bool = False
                 with c4:
-                    self.st.markdown('Get Stock Value')
-                    submitted = self.st.form_submit_button(label='GET')
+                    st.markdown('Get Stock Value')
+                    submitted = st.form_submit_button(label='GET')
 
                 if option is not None and not is_check_stock_value_start_disabled and submitted:
-                    with self.st.spinner('Wait for it...'):
+                    with st.spinner('Wait for it...'):
                         df = stock_service.get_stock(code=option, start_date=start_date, end_date=end_date)
-                    self.st.info(f'Ticker: {option}')
-                    self.st.line_chart(df.drop(columns=['Volume']))
-                    self.st.bar_chart(df['Volume'])
+                    st.info(f'Ticker: {option}')
+                    st.line_chart(df.drop(columns=['Volume']))
+                    st.bar_chart(df['Volume'])
                     is_view_df = True
 
-            with self.st.expander(label='Stock Value Table', expanded=True):
+            with st.expander(label='Stock Value Table', expanded=True):
                 if is_view_df:
-                    self.st.table(df)
+                    st.table(df)
+
+    def calc_service(self):
+        st.title('Calc Service')
+        calc_service = CalcService()
+
+        variables = st.text_input('variables')
+        input = st.text_input('eval')
+        try:
+            result = None
+            if not isinstance(input, str):
+                input = str(input)
+            if input is not None and variables is not None:
+                result = calc_service.get_eval(input, variables)
+            elif input is not None:
+                result = calc_service.get_eval(input)
+            if result is None:
+                raise ValueError
+        except Exception as e:
+            st.metric(label='Variables', value=variables)
+            st.metric(label='Text Input', value=input)
+        else:
+            st.metric(label='Variables', value=variables)
+            st.metric(label='Result', value=result)
+
+    def markdown_service(self):
+        st.title('Markdown Service')
+        input = st.text_area('markdown text: ')
+        if input is not None:
+            st.markdown(input)
+
+    def notion_service(self):
+        st.title('Notion Service')
+
+        try:
+            notion_service = NotionService(access_token=st.secrets['notion_access_token'])
+            if st.button('GET'):
+                with st.spinner('Wait for it...'):
+                    res = notion_service.show_database(database_id=st.secrets['notion_database_id'])
+                st.table(res)
+                st.json(notion_service.result_dict)
+        except Exception as e:
+            logger.error(e)
+            st.error('access_token error')
 
     def etc_service(self):
-        self.st.markdown("""
+        st.markdown("""
         |Sub Page          |Functions           |
         |------------------|--------------------|
         |image_service     |upload              |
