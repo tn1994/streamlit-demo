@@ -13,9 +13,9 @@ try:
     from ..services.csv_service import get_regression_buffer_data
     from ..services.calc_service import CalcService
     from ..services.stock_service import StockService
-    from ..services.notion_service import NotionService
-
     from ..services.stock_service import color_survived
+    from ..services.notion_service import NotionService
+    from ..services.version_service import VersionService
     from ..services.sklearn_service import SklearnService
 except ImportError:
     logger.info('check: ImportError')  # todo: fix import error
@@ -25,15 +25,13 @@ except ImportError:
     from services.csv_service import get_regression_buffer_data
     from services.calc_service import CalcService
     from services.stock_service import StockService
-
-    from services.notion_service import NotionService
-
     from services.stock_service import color_survived
+    from services.notion_service import NotionService
+    from services.version_service import VersionService
     from services.sklearn_service import SklearnService
 
 
-class Sidebar:
-    radio_value: str
+class Sidebar:  # todo: refactor
 
     def __init__(self):
         self.service_dict = {
@@ -43,21 +41,15 @@ class Sidebar:
             'calc_service': self.calc_service,
             'markdown_service': self.markdown_service,
             'notion_service': self.notion_service,
+            'version_service': self.version_service,
             'etc': self.etc_service
         }
 
     def main(self):
-        option = st.sidebar.selectbox(
-            'Sub Page',
-            self.service_dict.keys()
-        )
-        select_service = self.service_dict[option]
-        select_service()
-
-    def _check_radio(self):
-        radio_value = st.sidebar.radio('check_radio', self.service_dict.keys())
+        radio_value = st.sidebar.radio('Sub Page', self.service_dict.keys())
         if radio_value:
-            self.radio_value = radio_value
+            select_service = self.service_dict[radio_value]
+            select_service()
 
     def image_service(self):
         st.title('Image service')
@@ -307,18 +299,48 @@ class Sidebar:
             logger.error(e)
             st.error('access_token error')
 
+    def version_service(self):
+        st.title('Version Service')
+        version_service = VersionService()
+
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.metric(label='Python Version', value=version_service.get_python_version())
+        with c2:
+            st.metric(label='Pip Version', value=version_service.get_pip_version())
+        with c3:
+            st.metric(label='Streamlit Version',
+                      value=version_service.get_library_version(library_name='streamlit'))
+        st.download_button(label='Download requirements.txt',
+                           data=version_service.get_pip_list(format='freeze'),
+                           file_name='requirements.txt',
+                           mime='text/txt')
+        with st.spinner('Wait for it...'):
+            pip_list = version_service.get_pip_list(format='json')
+        with st.expander('Pip List', expanded=True):
+            st.table(pip_list)
+
     def etc_service(self):
         st.markdown("""
-        |Sub Page          |Functions           |
-        |------------------|--------------------|
-        |image_service     |upload              |
-        |                  |view                |
-        |csv_service       |upload csv file     |
-        |                  |use temp data       |
-        |                  |Data Info           |
-        |                  |sklearn service     |
-        |stock_service     |Check Signal        |
-        |                  |CHeck Per Ticker    |
-        |                  |CHeck Stock Value   |
-        |etc               |*this page*         |
+        |Sub Page          |Functions                  |Remarks             |
+        |------------------|---------------------------|--------------------|
+        |image_service     |upload                     |                    |
+        |                  |view                       |                    |
+        |csv_service       |upload csv file            |                    |
+        |                  |use temp data              |                    |
+        |                  |Data Info                  |                    |
+        |                  |sklearn service            |                    |
+        |stock_service     |Check Signal               |                    |
+        |                  |CHeck Per Ticker           |                    |
+        |                  |CHeck Stock Value          |                    |
+        |calc_service      |Calc Eval                  |                    |
+        |markdown_service  |Markdown text input        |                    |
+        |                  |Markdown text view         |                    |
+        |                  |CHeck Stock Value          |                    |
+        |notion_service    |Get Notion Database        |must set st.secrets |
+        |version_service   |Get requirements.txt       |                    |
+        |                  |View Python Version        |                    |
+        |                  |View Pip Version           |                    |
+        |                  |View Streamlit Version     |                    |
+        |etc               |*this page*                |                    |
         """)
