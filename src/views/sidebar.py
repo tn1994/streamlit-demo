@@ -1,14 +1,20 @@
+import io
 import uuid
 import logging
 import datetime
+import requests
+import traceback
 from datetime import timedelta
 
+from PIL import Image
 import streamlit as st
 
 logger = logging.getLogger(__name__)
 
 try:
     from ..services.image_service import ImageService
+    from ..services.image_service import SearchImageService
+    from ..services.image_service import DownloadImageService
     from ..services.csv_service import CsvService
     from ..services.csv_service import get_classification_buffer_data
     from ..services.csv_service import get_regression_buffer_data
@@ -25,6 +31,8 @@ try:
 except ImportError:
     logger.info('check: ImportError')  # todo: fix import error
     from services.image_service import ImageService
+    from services.image_service import SearchImageService
+    from services.image_service import DownloadImageService
     from services.csv_service import CsvService
     from services.csv_service import get_classification_buffer_data
     from services.csv_service import get_regression_buffer_data
@@ -65,13 +73,66 @@ class Sidebar:  # todo: refactor
 
     def image_service(self):
         st.title('Image service')
-        uploaded_file = st.file_uploader('Choose a image file.', type=['jpeg', 'png'])
-        try:
-            if uploaded_file is not None:
-                image_service = ImageService(fp=uploaded_file)
-                st.image(image_service.image, caption='upload image', use_column_width=True)
-        except Exception as e:
-            logger.error(f'ERROR: {uploaded_file=}')
+
+        tab1, tab2, tab3 = st.tabs(['Upload Image Service', 'Search Image Service', 'Download as Zip'])
+
+        with tab1:
+            uploaded_file = st.file_uploader('Choose a image file.', type=['jpeg', 'png'])
+            try:
+                if uploaded_file is not None:
+                    image_service = ImageService()
+                    image_service.set_image(fp=uploaded_file)
+                    st.image(image_service.image, caption='upload image', use_column_width=True)
+            except Exception as e:
+                logger.error(f'ERROR: {uploaded_file=}')
+
+        with tab2:
+            try:
+                url: str = st.text_input(label='search url')
+                if st.button('Show Images') and 0 != len(url):
+                    # ref:https://cafe-mickey.com/python/streamlit-5/
+                    search_image = SearchImageService()
+                    img_list: list = search_image.get_img_link(url=url)
+
+                    num = 1
+                    col = st.columns(num)
+                    if 0 != len(img_list):
+                        for idx, img_link in enumerate(img_list):
+                            with col[idx % num]:
+                                st.image(img_list[idx], use_column_width=True)
+
+            except Exception as e:
+                logger.error(e)
+                logger.error(f'ERROR: Search Image Service')
+
+        with tab3:
+            try:
+                download_image_service = DownloadImageService(cx=st.secrets['google_custom_search_api']['cx'],
+                                                              key=st.secrets['google_custom_search_api']['key'])
+
+                with st.form(key='sklearn_service_form'):
+
+                    select_query: str = st.selectbox(label='Select Query', options=download_image_service.query_list)
+                    query: str = st.text_input(label='Other Query')
+                    num_images: int = st.slider('Num of Images', 0, 100, 25)
+                    submitted = st.form_submit_button(label='Setup Download')
+
+                if select_query is not None and num_images is not None and submitted:
+                    with st.spinner('Wait for it...'):
+                        with io.BytesIO() as buffer:  # ref: https://discuss.streamlit.io/t/download-zipped-json-file/22512/5
+                            _query: str = query if 0 != len(query) else select_query
+                            zipfile = download_image_service.download_images_as_zipfile(buffer=buffer, query=_query,
+                                                                                        num=num_images)
+                            buffer.seek(0)
+
+                            if zipfile is not None:
+                                st.download_button(label='Download Images as ZipFile',
+                                                   data=zipfile,
+                                                   file_name='images.zip',
+                                                   mime='application/zip')
+            except Exception as e:
+                logger.error(e)
+                traceback.print_exc()
 
     def csv_service(self):
         st.title('CSV service')
@@ -168,9 +229,9 @@ class Sidebar:  # todo: refactor
 
         try:
             aws_service = AWSService(
-                aws_access_key_id=st.secrets['aws_access_key_id'],
-                aws_secret_access_key=st.secrets['aws_secret_access_key'],
-                region_name=st.secrets['region_name']
+                aws_access_key_id=st.secrets['aws_service']['access_key_id'],
+                aws_secret_access_key=st.secrets['aws_service']['secret_access_key'],
+                region_name=st.secrets['aws_service']['region_name']
             )
 
             tab1, tab2 = st.tabs(['Billing', 'S3'])
@@ -377,10 +438,10 @@ class Sidebar:  # todo: refactor
         st.title('Notion Service')
 
         try:
-            notion_service = NotionService(access_token=st.secrets['notion_access_token'])
+            notion_service = NotionService(access_token=st.secrets['notion_service']['access_token'])
             if st.button('GET'):
                 with st.spinner('Wait for it...'):
-                    res = notion_service.show_database(database_id=st.secrets['notion_database_id'])
+                    res = notion_service.show_database(database_id=st.secrets['notion_service']['database_id'])
                 st.table(res)
                 st.json(notion_service.result_dict)
         except Exception as e:
@@ -451,7 +512,8 @@ class HuggingFaceView:
         tab_api, tab_built_in = st.tabs(self.main_tab_list)
         try:
             with tab_api:  # API tab
-                hugging_face_service = HuggingFaceService(access_token=st.secrets['hugging_face_access_token'])
+                hugging_face_service = HuggingFaceService(
+                    access_token=st.secrets['hugging_face_service']['access_token'])
 
                 tab1, tab2 = st.tabs(hugging_face_service.task_list)
                 with tab1:

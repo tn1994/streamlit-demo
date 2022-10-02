@@ -9,21 +9,24 @@ https://zenn.dev/littledarwin/articles/581c15b3a061cb
 1. Copy from secrets_config/sample.secrets.toml to config/secrets.toml, and input value
 
 ```toml
-# set up streamlit
 env='develop'
 hashed_text='5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9'
 
-# Notion Service
-notion_access_token='...'
-notion_database_id='...'
+[notion_service]
+access_token=''
+database_id=''
 
-# AWS Service
-aws_access_key_id='...'
-aws_secret_access_key='...'
-region_name='...'
+[aws_service]
+access_key_id=''
+secret_access_key=''
+region_name=''
 
-# Hugging Face Service
-hugging_face_access_token='...'
+[hugging_face_service]
+access_token=''
+
+[google_custom_search_api]
+cx=''
+key=''
 ```
 
 2. Run build.sh

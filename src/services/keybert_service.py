@@ -7,13 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 class KeyBERTService:
-    """
-    学習済みのBERTに新たにTokenizer(キーワード)を追加。
-    Sentence-Transformersのモデルに学習済みモデルを読み込む。
-    Sentence-Transformersのモデルにキーワードを追加する？
-    「キーワードを追加したSentence-Transformersのモデル」をKeyBERTのEmbedding Modelsとして、適用させる。
-    """
-
     stop_words_list: list = [
         ',',
         '.',
@@ -56,6 +49,10 @@ class KeyBERTService:
 
     def main(self, model_name: str, payload: str, add_tokens: str = None, top_n: int = 5):
         """
+        Add new Tokenizer (keywords) to the trained BERT.
+        Load the learned model into the Sentence-Transformers model.
+        Add keywords to the Sentence-Transformers model.
+        Apply the "Sentence-Transformers model with keywords added" as Embedding Models for KeyBERT.
 
         :param model_name:
         :param payload:

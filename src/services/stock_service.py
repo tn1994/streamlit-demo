@@ -71,7 +71,8 @@ class StockService:
     def returnBizDay(self, DATE):
         Date = datetime.date(int(DATE[0:4]), int(DATE[4:6]), int(DATE[6:8]))
         while Date.weekday() >= 5 or jpholiday.is_holiday(Date):
-            Date = datetime.date(Date.year, Date.month, Date.day - 1)
+            tmp_date = datetime.date(Date.year, Date.month, Date.day)
+            Date = tmp_date - timedelta(1)
         return Date.strftime("%Y-%m-%d")
 
     def get_stock(self, code, start_date, end_date) -> pd.DataFrame:
