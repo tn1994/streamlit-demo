@@ -5,6 +5,7 @@ import streamlit as st
 from views.sidebar import Sidebar
 from views.about_me import AboutMe
 from services.hash_service import check_hashes
+from services.utils.analysis_memory import get_memory_state_percent
 
 logger = logging.getLogger(__name__)
 
@@ -33,20 +34,24 @@ class APP:
 
         if 'login' == option:
             self._top_page()
-            if not st.session_state.is_authorization:
-                st.session_state.is_authorization = self._password()
-            if st.session_state.is_authorization:
-                st.info('Switch to "Main" from the select box in the sidebar.')
 
-            # view Authorization
-            st.markdown('### Now Your Authorization:')
-            match st.session_state.is_authorization:
-                case True:
-                    st.success('Authorization')
-                case False:
-                    st.warning('Unauthenticated')
-                case _:
-                    raise ValueError(f'{st.session_state.is_authorization=}')
+            if 90 > get_memory_state_percent():
+                if not st.session_state.is_authorization:
+                    st.session_state.is_authorization = self._password()
+                if st.session_state.is_authorization:
+                    st.info('Switch to "Main" from the select box in the sidebar.')
+
+                # view Authorization
+                st.markdown('### Now Your Authorization:')
+                match st.session_state.is_authorization:
+                    case True:
+                        st.success('Authorization')
+                    case False:
+                        st.warning('Unauthenticated')
+                    case _:
+                        raise ValueError(f'{st.session_state.is_authorization=}')
+            else:
+                st.error('Memory Over Error')
 
         if 'main' == option and st.session_state.is_authorization:
             self._sidebar()

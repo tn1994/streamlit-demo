@@ -12,7 +12,7 @@ from transformers import RobertaForMaskedLM
 logger = logging.getLogger(__name__)
 
 SEED: int = 42
-transformers.utils.move_cache()
+# transformers.utils.move_cache()
 transformers.trainer.set_seed(seed=SEED)
 
 
