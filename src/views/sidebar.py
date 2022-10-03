@@ -16,6 +16,7 @@ try:
     from ..services.image_service import SearchImageService
     from ..services.image_service import DownloadImageService
     from ..services.image_services.pinterest_service import PinterestService
+    from ..services.nlp_services.gensim_service import GensimService
     from ..services.csv_service import CsvService
     from ..services.csv_service import get_classification_buffer_data
     from ..services.csv_service import get_regression_buffer_data
@@ -35,6 +36,7 @@ except ImportError:
     from services.image_service import SearchImageService
     from services.image_service import DownloadImageService
     from services.image_services.pinterest_service import PinterestService
+    from services.nlp_services.gensim_service import GensimService
     from services.csv_service import CsvService
     from services.csv_service import get_classification_buffer_data
     from services.csv_service import get_regression_buffer_data
@@ -56,6 +58,7 @@ class Sidebar:  # todo: refactor
         self.service_dict = {
             'image_service': self.image_service,
             'pinterest_service': self.pinterest_service,
+            'gensim_service': self.gensim_service,
             'csv_service': self.csv_service,
             'aws_service': self.aws_service,
             'hugging_face_service': self.hugging_face_service,
@@ -140,6 +143,10 @@ class Sidebar:  # todo: refactor
     def pinterest_service(self):
         pinterest_view = PinterestView()
         pinterest_view.main()
+
+    def gensim_service(self):
+        gensim_view = GensimView()
+        gensim_view.main()
 
     def csv_service(self):
         st.title('CSV service')
@@ -535,6 +542,37 @@ class PinterestView:
                     for idx, img_link in enumerate(pinterest_service.image_info_list):
                         with col[idx % num]:
                             st.image(pinterest_service.image_info_list[idx], use_column_width=True)
+
+
+class GensimView:
+    title: str = 'Gensim Service'
+    gensim_service = GensimService()
+    gensim_service.main()
+
+    def __init__(self):
+        self.gensim_service.main()
+
+    def main(self):
+        st.title(self.title)
+
+        st.table(self.gensim_service.most_similar_list)
+        st.write(f'Positive: {self.gensim_service.random_positive_list[self.gensim_service.random_positive_idx]}')
+        st.write(f'Negative: {self.gensim_service.random_negative_list[self.gensim_service.random_negative_idx]}')
+
+        with st.form(key='pinterest_service_form'):
+            # select_query: str = st.selectbox(label='Select Query', options=pinterest_service.query_list)
+            query: str = st.text_input(label='Negative Word')
+            # num_pins: int = st.slider('Num of Images', 0, 100, 25)
+            submitted = st.form_submit_button(label='Answer')
+
+        if 0 != len(query) and submitted:
+            with st.spinner('Wait for it...'):
+                is_correct_answer: bool = self.gensim_service.is_correct_answer(word=query)
+
+                if is_correct_answer:
+                    st.success('Correct!')
+                elif not is_correct_answer:
+                    st.warning('Not Correct...')
 
 
 class HuggingFaceView:
