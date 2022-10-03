@@ -15,6 +15,7 @@ try:
     from ..services.image_service import ImageService
     from ..services.image_service import SearchImageService
     from ..services.image_service import DownloadImageService
+    from ..services.image_services.pinterest_service import PinterestService
     from ..services.csv_service import CsvService
     from ..services.csv_service import get_classification_buffer_data
     from ..services.csv_service import get_regression_buffer_data
@@ -33,6 +34,7 @@ except ImportError:
     from services.image_service import ImageService
     from services.image_service import SearchImageService
     from services.image_service import DownloadImageService
+    from services.image_services.pinterest_service import PinterestService
     from services.csv_service import CsvService
     from services.csv_service import get_classification_buffer_data
     from services.csv_service import get_regression_buffer_data
@@ -53,6 +55,7 @@ class Sidebar:  # todo: refactor
     def __init__(self):
         self.service_dict = {
             'image_service': self.image_service,
+            'pinterest_service': self.pinterest_service,
             'csv_service': self.csv_service,
             'aws_service': self.aws_service,
             'hugging_face_service': self.hugging_face_service,
@@ -110,7 +113,7 @@ class Sidebar:  # todo: refactor
                 download_image_service = DownloadImageService(cx=st.secrets['google_custom_search_api']['cx'],
                                                               key=st.secrets['google_custom_search_api']['key'])
 
-                with st.form(key='sklearn_service_form'):
+                with st.form(key='download_image_service_form'):
 
                     select_query: str = st.selectbox(label='Select Query', options=download_image_service.query_list)
                     query: str = st.text_input(label='Other Query')
@@ -133,6 +136,10 @@ class Sidebar:  # todo: refactor
             except Exception as e:
                 logger.error(e)
                 traceback.print_exc()
+
+    def pinterest_service(self):
+        pinterest_view = PinterestView()
+        pinterest_view.main()
 
     def csv_service(self):
         st.title('CSV service')
@@ -501,6 +508,33 @@ class Sidebar:  # todo: refactor
         |                         |View Streamlit Version                               |                    |
         |etc                      |*this page*                                          |                    |
         """)
+
+
+class PinterestView:
+    title: str = 'Pinterest Service'
+
+    def main(self):
+        st.title(self.title)
+
+        pinterest_service = PinterestService()
+
+        with st.form(key='pinterest_service_form'):
+            select_query: str = st.selectbox(label='Select Query', options=pinterest_service.query_list)
+            query: str = st.text_input(label='Other Query')
+            num_pins: int = st.slider('Num of Images', 0, 100, 25)
+            submitted = st.form_submit_button(label='Search')
+
+        if 0 != len(select_query) and num_pins is not None and submitted:
+            with st.spinner('Wait for it...'):
+                _query: str = query if 0 != len(query) else select_query
+                pinterest_service.search(query=_query, num_pins=num_pins)
+
+                num = 3
+                col = st.columns(num)
+                if 0 != len(pinterest_service.image_info_list):
+                    for idx, img_link in enumerate(pinterest_service.image_info_list):
+                        with col[idx % num]:
+                            st.image(pinterest_service.image_info_list[idx], use_column_width=True)
 
 
 class HuggingFaceView:
