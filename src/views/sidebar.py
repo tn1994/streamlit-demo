@@ -28,6 +28,7 @@ try:
     from ..services.stock_service import color_survived
     from ..services.calc_service import CalcService
     from ..services.notion_service import NotionService
+    from .notion_pinterest_view import NotionPinterestView
     from ..services.version_service import VersionService
     from ..services.sklearn_service import SklearnService
 except ImportError:
@@ -48,6 +49,7 @@ except ImportError:
     from services.stock_service import color_survived
     from services.calc_service import CalcService
     from services.notion_service import NotionService
+    from views.notion_pinterest_view import NotionPinterestView
     from services.version_service import VersionService
     from services.sklearn_service import SklearnService
 
@@ -67,6 +69,7 @@ class Sidebar:  # todo: refactor
             'calc_service': self.calc_service,
             'markdown_service': self.markdown_service,
             'notion_service': self.notion_service,
+            'notion_pinterest_service': self.notion_pinterest_service,
             'version_service': self.version_service,
             'etc': self.etc_service
         }
@@ -462,6 +465,10 @@ class Sidebar:  # todo: refactor
             logger.error(e)
             st.error('access_token error')
 
+    def notion_pinterest_service(self):
+        notion_pinterest_view = NotionPinterestView()
+        notion_pinterest_view.main()
+
     def version_service(self):
         st.title('Version Service')
         version_service = VersionService()
@@ -536,6 +543,7 @@ class PinterestView:
                 _query: str = query if 0 != len(query) else select_query
                 pinterest_service.search(query=_query, num_pins=num_pins)
 
+            with st.expander(label='Show Pins', expanded=True):
                 num = 3
                 col = st.columns(num)
                 if 0 != len(pinterest_service.image_info_list):
@@ -546,10 +554,9 @@ class PinterestView:
 
 class GensimView:
     title: str = 'Gensim Service'
-    gensim_service = GensimService()
-    gensim_service.main()
 
     def __init__(self):
+        self.gensim_service = GensimService()
         self.gensim_service.main()
 
     def main(self):
