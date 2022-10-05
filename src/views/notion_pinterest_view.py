@@ -14,12 +14,14 @@ except ImportError:
 
 class NotionPinterestView:
     title: str = 'Notion Pinterest Service'
-    database_id: str = st.secrets['notion_pinterest_service']['database_id']
+    database_id: str = None
 
     def main(self):
         st.title(self.title)
 
         try:
+            self.database_id: str = st.secrets['notion_pinterest_service']['database_id']
+
             tab1, tab2, tab3 = st.tabs(['GET', 'POST', 'READ'])
 
             notion_pinterest_service = NotionPinterestService(
