@@ -64,6 +64,7 @@ class Sidebar:  # todo: refactor
             'csv_service': self.csv_service,
             'aws_service': self.aws_service,
             'hugging_face_service': self.hugging_face_service,
+            'hugging_face_demo_service': self.hugging_face_demo_service,
             'keybert_service': self.keybert_service,
             'stock_service': self.stock_service,
             'calc_service': self.calc_service,
@@ -289,6 +290,10 @@ class Sidebar:  # todo: refactor
     def hugging_face_service(self):
         hugging_face_view = HuggingFaceView()
         hugging_face_view.main()
+
+    def hugging_face_demo_service(self):
+        hugging_face_demo_view = HuggingFaceDemoView()
+        hugging_face_demo_view.main()
 
     def keybert_service(self):
         keybert_view = KeyBERTView()
@@ -671,6 +676,42 @@ class HuggingFaceView:
         except Exception as e:
             logger.error(e)
             st.error('Built in error')
+
+
+class HuggingFaceDemoView:
+    title: str = 'Hugging Face Demo Service'
+
+    def main(self):
+        st.title(self.title)
+
+        try:
+            self._view_select_keybert_service()
+        except Exception as e:
+            logger.error(e)
+            st.error('Select KeyBERT error')
+
+    def _view_select_keybert_service(self):
+        try:
+            hugging_face_built_in_service = HuggingFaceBuiltInService()
+
+            select_model_name = st.selectbox(label='Select Model',
+                                             options=hugging_face_built_in_service.text_generation_model_id_list)
+            with st.form(key='task_generation_built_in_form'):
+                payload = st.text_input(label='Query',
+                                        value=hugging_face_built_in_service.get_example_value(
+                                            model_name=select_model_name))
+                submitted = st.form_submit_button(label='Inference')
+
+                if select_model_name is not None and 0 != len(payload) and submitted:
+                    with st.spinner('Wait for it...'):
+                        result = hugging_face_built_in_service.inference(payload=payload,
+                                                                         model_name=select_model_name)
+                    st.info(f'Input Text: \n\n {payload}')
+                    for sentence in result:
+                        st.info(f'Result: \n\n {sentence}')
+        except Exception as e:
+            logger.error(e)
+            raise e
 
 
 class KeyBERTView:
