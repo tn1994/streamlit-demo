@@ -127,3 +127,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# for MacOS
+*.DS_Store
+
+# for Jetbrains IDE
+.idea
+
+# secret of streamlit
+config/secrets.toml
+src/.streamlit

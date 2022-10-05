@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  streamlit:
+    build:
+      context: .
+    container_name: streamlit
+    working_dir: '/src'
+    tty: true
+    volumes:
+      - ./src:/src
+      - ./config:/src/.streamlit
+    ports:
+      - '8501:8501'
+    command: streamlit run app.py
