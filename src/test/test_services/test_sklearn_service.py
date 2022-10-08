@@ -9,11 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 class Test:
-    sklearn_service = SklearnService()
+    sklearn_service = SklearnService(predict_type='Classification',
+                                     model_name='ExtraTreesClassifier')
 
     def test(self):
         df: pd.DataFrame = get_classification_data()
-        df.to_csv(f'./{temperature_name}_{humidity_name}.csv', index=False)
+        # df.to_csv(f'./{temperature_name}_{humidity_name}.csv', index=False)
 
         X = df.drop('is_comfortable', axis=1)
         y = df['is_comfortable']
