@@ -2,8 +2,12 @@ import logging
 
 import pandas as pd
 
-from src.services.csv_service import get_classification_data
-from src.services.sklearn_service import SklearnService
+try:
+    from src.services.csv_service import get_classification_data
+    from src.services.sklearn_service import SklearnService
+except ImportError as e:
+    from services.csv_service import get_classification_data
+    from services.sklearn_service import SklearnService
 
 logger = logging.getLogger(__name__)
 
